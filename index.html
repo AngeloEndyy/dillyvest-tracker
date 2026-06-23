@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dillyvest Tracking</title>
+  <style>
+    * { box-sizing: border-box; font-family: Arial, sans-serif; }
+    body { margin: 0; background: #0f172a; color: #e5e7eb; }
+    .wrap { max-width: 1300px; margin: 0 auto; padding: 24px; }
+    .card {
+      background: #111827;
+      border: 1px solid #334155;
+      border-radius: 14px;
+      padding: 18px;
+      margin-bottom: 18px;
+    }
+    h1, h2 { margin-top: 0; }
+    .muted { color: #94a3b8; font-size: 13px; }
+    label { display:block; margin-bottom:6px; color:#94a3b8; font-size:13px; }
+    input, select, button {
+      width:100%; padding:11px 12px; border-radius:10px; border:1px solid #334155;
+      background:#0b1220; color:#e5e7eb; outline:none;
+    }
+    button { cursor:pointer; border:none; font-weight:700; }
+    .btn { background:#22c55e; color:#06210f; }
+    .btn-secondary { background:#334155; }
+    .btn-danger { background:#ef4444; color:#fff; }
+    .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; }
+    .actions { display:flex; gap:10px; flex-wrap:wrap; margin-top:12px; }
+    .actions button { width:auto; padding:11px 16px; }
+    .toolbar { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px; margin-bottom:12px; }
+    table { width:100%; border-collapse:collapse; }
+    th, td { border-bottom:1px solid #334155; padding:12px 10px; text-align:left; font-size:14px; vertical-align:top; }
+    th { color:#cbd5e1; font-size:13px; }
+    .badge { display:inline-block; padding:5px 10px; border-radius:999px; font-size:12px; font-weight:700; text-transform:capitalize; }
+    .moving { background:#14532d; color:#86efac; }
+    .breakdown { background:#7f1d1d; color:#fecaca; }
+    .stops { background:#1e3a8a; color:#bfdbfe; }
+    .offloading { background:#78350f; color:#fed7aa; }
+    .offloaded { background:#064e3b; color:#a7f3d0; }
+    .empty { text-align:center; color:#94a3b8; padding:20px; }
+    .row-actions { display:flex; gap:8px; flex-wrap:wrap; }
+    .login-box { max-width:420px; margin:60px auto; }
+    .topbar { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; }
+    .hidden { display:none; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+
+    <!-- LOGIN -->
+    <div id="loginView" class="card login-box">
+      <h1>Dillyvest Login</h1>
+      <p class="muted">Enter the admin login to access the tracking dashboard.</p>
+      <div style="margin-bottom:12px;">
+        <label>Username</label>
+        <input id="loginUsername" placeholder="" />
+      </div>
+      <div style="margin-bottom:12px;">
+        <label>Password</label>
+        <input id="loginPassword" type="password" placeholder="" />
+      </div>
+      <button class="btn" onclick="login()">Login</button>
+      <p id="loginError" class="muted" style="color:#fca5a5; margin-top:10px;"></p>
+    </div>
+
+    <!-- DASHBOARD -->
+    <div id="appView" class="hidden">
+      <div class="topbar" style="margin-bottom:18px;">
+        <div>
+          <h1>Dillyvest Tracking Website</h1>
+          <p class="muted">Track haulage trips and store records in the browser.</p>
+        </div>
+        <button class="btn-secondary" style="width:auto;" onclick="logout()">Logout</button>
+      </div>
+
+      <div class="card">
+        <div class="grid">
+          <div><label>Truck Number</label><input id="truckNumber" placeholder="TRK-001"></div>
+          <div><label>Container Number</label><input id="containerNumber" placeholder="CNT-7788"></div>
+          <div><label>Destination</label><input id="destination" placeholder="Lagos"></div>
+          <div><label>Location</label><input id="location" placeholder="Current location"></div>
+          <div><label>Origin</label><input id="origin" placeholder="Abuja"></div>
+          <div><label>Time of Trip</label><input id="tripStart" type="datetime-local"></div>
+          <div><label>Time for Stop of Trip</label><input id="tripStop" type="datetime-local"></div>
+          <div><label>Duration</label><input id="duration" readonly placeholder="Auto-calculated"></div>
+          <div>
+            <label>Status</label>
+            <select id="status">
+              <option value="moving">Moving</option>
+              <option value="breakdown">Breakdown</option>
+              <option value="stops">Stops</option>
+              <option value="offloading">Offloading</option>
+              <option value="offloaded">Offloaded</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button class="btn" onclick="saveRecord()">Save Record</button>
+          <button class="btn-secondary" onclick="clearForm()">Clear Form</button>
+          <button class="btn-danger" onclick="deleteAll()">Delete All</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="toolbar">
+          <div>
+            <label>Search</label>
+            <input id="search" placeholder="Search truck, container, destination..." oninput="renderTable()">
+          </div>
+          <div>
+            <label>Filter Status</label>
+            <select id="filterStatus" onchange="renderTable()">
+              <option value="">All</option>
+              <option value="moving">Moving</option>
+              <option value="breakdown">Breakdown</option>
+              <option value="stops">Stops</option>
+              <option value="offloading">Offloading</option>
+              <option value="offloaded">Offloaded</option>
+            </select>
+          </div>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th>Truck</th>
+              <th>Container</th>
+              <th>Destination</th>
+              <th>Location</th>
+              <th>Origin</th>
+              <th>Trip Time</th>
+              <th>Stop Time</th>
+              <th>Duration</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="recordsTable">
+            <tr><td colspan="10" class="empty">No records yet.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const STORAGE_KEY = "dillyvest_records";
+    const LOGIN_KEY = "dillyvest_logged_in";
+    let records = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+    let editIndex = null;
+
+    function login() {
+      const u = document.getElementById("loginUsername").value.trim();
+      const p = document.getElementById("loginPassword").value;
+
+      if (u === "admin" && p === "dillyvest123") {
+        localStorage.setItem(LOGIN_KEY, "1");
+        showApp();
+        return;
+      }
+      document.getElementById("loginError").textContent = "Invalid username or password.";
+    }
+
+    function logout() {
+      localStorage.removeItem(LOGIN_KEY);
+      document.getElementById("loginPassword").value = "";
+      showLogin();
+    }
+
+    function showApp() {
+      document.getElementById("loginView").classList.add("hidden");
+      document.getElementById("appView").classList.remove("hidden");
+      renderTable();
+    }
+
+    function showLogin() {
+      document.getElementById("loginView").classList.remove("hidden");
+      document.getElementById("appView").classList.add("hidden");
+    }
+
+    function calculateDuration() {
+      const start = document.getElementById("tripStart").value;
+      const stop = document.getElementById("tripStop").value;
+      const durationEl = document.getElementById("duration");
+
+      if (!start || !stop) {
+        durationEl.value = "";
+        return "";
+      }
+
+      const diff = new Date(stop) - new Date(start);
+      if (diff < 0) {
+        durationEl.value = "Invalid time";
+        return "Invalid time";
+      }
+
+      const mins = Math.floor(diff / 60000);
+      const hrs = Math.floor(mins / 60);
+      const rem = mins % 60;
+      const text = `${hrs}h ${rem}m`;
+      durationEl.value = text;
+      return text;
+    }
+
+    function saveRecord() {
+      const record = {
+        truckNumber: document.getElementById("truckNumber").value.trim(),
+        containerNumber: document.getElementById("containerNumber").value.trim(),
+        destination: document.getElementById("destination").value.trim(),
+        location: document.getElementById("location").value.trim(),
+        origin: document.getElementById("origin").value.trim(),
+        tripStart: document.getElementById("tripStart").value,
+        tripStop: document.getElementById("tripStop").value,
+        duration: calculateDuration(),
+        status: document.getElementById("status").value
+      };
+
+      if (!record.truckNumber || !record.containerNumber) {
+        alert("Truck Number and Container Number are required.");
+        return;
+      }
+
+      if (editIndex === null) records.unshift(record);
+      else records[editIndex] = record;
+
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+      renderTable();
+      clearForm();
+    }
+
+    function renderTable() {
+      const tbody = document.getElementById("recordsTable");
+      const search = document.getElementById("search").value.toLowerCase().trim();
+      const filterStatus = document.getElementById("filterStatus").value;
+
+      const filtered = records.filter(r => {
+        const text = `${r.truckNumber} ${r.containerNumber} ${r.destination} ${r.location} ${r.origin} ${r.status}`.toLowerCase();
+        return (!search || text.includes(search)) && (!filterStatus || r.status === filterStatus);
+      });
+
+      if (!filtered.length) {
+        tbody.innerHTML = `<tr><td colspan="10" class="empty">No matching records found.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = filtered.map(r => {
+        const idx = records.indexOf(r);
+        return `
+          <tr>
+            <td>${r.truckNumber || ""}</td>
+            <td>${r.containerNumber || ""}</td>
+            <td>${r.destination || ""}</td>
+            <td>${r.location || ""}</td>
+            <td>${r.origin || ""}</td>
+            <td>${r.tripStart || ""}</td>
+            <td>${r.tripStop || ""}</td>
+            <td>${r.duration || ""}</td>
+            <td><span class="badge ${r.status}">${r.status}</span></td>
+            <td>
+              <div class="row-actions">
+                <button class="btn-secondary" onclick="editRecord(${idx})">Edit</button>
+                <button class="btn-danger" onclick="deleteRecord(${idx})">Delete</button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    function editRecord(index) {
+      const r = records[index];
+      editIndex = index;
+      document.getElementById("truckNumber").value = r.truckNumber || "";
+      document.getElementById("containerNumber").value = r.containerNumber || "";
+      document.getElementById("destination").value = r.destination || "";
+      document.getElementById("location").value = r.location || "";
+      document.getElementById("origin").value = r.origin || "";
+      document.getElementById("tripStart").value = r.tripStart || "";
+      document.getElementById("tripStop").value = r.tripStop || "";
+      document.getElementById("status").value = r.status || "moving";
+      calculateDuration();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    function deleteRecord(index) {
+      if (!confirm("Delete this record?")) return;
+      records.splice(index, 1);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+      renderTable();
+    }
+
+    function deleteAll() {
+      if (!confirm("Delete all records?")) return;
+      records = [];
+      localStorage.removeItem(STORAGE_KEY);
+      renderTable();
+      clearForm();
+    }
+
+    function clearForm() {
+      document.getElementById("truckNumber").value = "";
+      document.getElementById("containerNumber").value = "";
+      document.getElementById("destination").value = "";
+      document.getElementById("location").value = "";
+      document.getElementById("origin").value = "";
+      document.getElementById("tripStart").value = "";
+      document.getElementById("tripStop").value = "";
+      document.getElementById("duration").value = "";
+      document.getElementById("status").value = "moving";
+      editIndex = null;
+    }
+
+    document.getElementById("tripStart").addEventListener("input", calculateDuration);
+    document.getElementById("tripStop").addEventListener("input", calculateDuration);
+
+    if (localStorage.getItem(LOGIN_KEY) === "1") showApp();
+    else showLogin();
+  </script>
+</body>
+</html>
